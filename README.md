@@ -17,7 +17,7 @@ roomwatch runs automatically every day at 9am to check a building's room vacancy
 
 ## Prerequisites
 
-- Python 3.8 or higher (recommended) OR Node.js 16+ (alternative)
+- Python 3.8 or higher
 - Claude API key from [Anthropic](https://console.anthropic.com/)
 - Pushover account and API token from [pushover.net](https://pushover.net/)
 - Target webpage URL for room vacancies
@@ -33,11 +33,7 @@ cd roomwatch
 
 2. Install dependencies:
 ```bash
-# For Python
 pip install -r requirements.txt
-
-# OR for Node.js
-npm install
 ```
 
 3. Configure your environment:
@@ -235,11 +231,7 @@ aws logs tail /aws/lambda/roomwatch --follow
 ### Running Locally (Development/Testing)
 
 ```bash
-# Python
 python roomwatch.py
-
-# Node.js
-npm start
 ```
 
 ## How It Works
