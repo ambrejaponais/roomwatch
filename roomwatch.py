@@ -115,57 +115,36 @@ class RoomWatch:
         """
         logger.info("Analyzing content with Claude AI")
 
-        prompt = f"""Analyze the following room vacancy webpage content and extract key information.
+        prompt = f"""以下のWebサイトコンテンツを分析して、ロイヤルパークス西新井の空室情報を簡潔な平文でまとめて。
+空室がない場合のフォーマットは以下:
+空室状況: なし
 
-Please provide:
-1. A summary of available rooms (room numbers, types, prices if available)
-2. Total number of vacancies
-3. Any important details (move-in dates, requirements, etc.)
-4. Whether rooms appear to be available or not
+空室情報は階数、間取り、家賃を列挙する形にして。
+空室がある場合のフォーマットは以下:
+空室状況: あり
+空室情報:
+1. 階数 間取り 家賃
+2. 階数 間取り 家賃
 
-Format your response as JSON with this structure:
-{{
-    "has_vacancies": true/false,
-    "vacancy_count": number,
-    "summary": "brief summary text",
-    "rooms": [
-        {{"room": "room identifier", "details": "details"}},
-        ...
-    ],
-    "notes": "any additional important information"
-}}
 
-Webpage content:
+Webサイトコンテンツ:
 {content[:4000]}
 """
 
         try:
             message = self.claude_client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-sonnet-4-5-20250929",
                 max_tokens=1024,
                 messages=[
                     {"role": "user", "content": prompt}
                 ]
             )
 
-            # Extract the text response
-            response_text = message.content[0].text
+            # Extract the Japanese summary text
+            summary = message.content[0].text.strip()
 
-            # Try to parse as JSON
-            try:
-                result = json.loads(response_text)
-            except json.JSONDecodeError:
-                # If not valid JSON, wrap in a basic structure
-                result = {
-                    "has_vacancies": "available" in response_text.lower() or "vacancy" in response_text.lower(),
-                    "vacancy_count": 0,
-                    "summary": response_text,
-                    "rooms": [],
-                    "notes": "Could not parse structured data"
-                }
-
-            logger.info(f"Claude analysis complete: {result.get('vacancy_count', 0)} vacancies found")
-            return result
+            logger.info(f"Claude analysis complete")
+            return summary
 
         except Exception as e:
             logger.error(f"Failed to analyze with Claude: {e}")
@@ -228,30 +207,14 @@ Webpage content:
         logger.info("No significant changes detected")
         return False
 
-    def send_notification(self, vacancy_data: Dict):
+    def send_notification(self, summary: str):
         """
         Send push notification via Pushover
 
         Args:
-            vacancy_data: The vacancy data to include in notification
+            summary: The Japanese summary text from Claude
         """
         logger.info("Sending push notification")
-
-        # Build notification message
-        if vacancy_data.get('has_vacancies'):
-            title = f"🏠 Room Vacancies Detected!"
-            message = f"{vacancy_data['summary']}\n\n"
-
-            if vacancy_data.get('rooms'):
-                message += "Available rooms:\n"
-                for room in vacancy_data['rooms'][:5]:  # Limit to 5 rooms
-                    message += f"- {room.get('room', 'N/A')}: {room.get('details', 'No details')}\n"
-
-            if vacancy_data.get('notes'):
-                message += f"\n{vacancy_data['notes']}"
-        else:
-            title = "Room Watch Update"
-            message = "No vacancies currently available.\n\n" + vacancy_data.get('summary', '')
 
         # Send via Pushover
         try:
@@ -260,11 +223,10 @@ Webpage content:
                 data={
                     'token': self.pushover_token,
                     'user': self.pushover_user,
-                    'title': title,
-                    'message': message[:1024],  # Pushover has message length limit
-                    'priority': 1 if vacancy_data.get('has_vacancies') else 0,
+                    'title': '部屋の空室情報',
+                    'message': summary,
                     'url': self.target_url,
-                    'url_title': 'View Vacancies'
+                    'url_title': '詳細を見る'
                 },
                 timeout=10
             )
@@ -274,12 +236,12 @@ Webpage content:
             logger.error(f"Failed to send notification: {e}")
             raise
 
-    def run(self) -> Dict:
+    def run(self) -> str:
         """
         Main execution method
 
         Returns:
-            Dict: The current vacancy data
+            str: The Japanese summary
         """
         logger.info("Starting RoomWatch check")
 
@@ -289,23 +251,13 @@ Webpage content:
             content = self.extract_content(html)
 
             # Analyze with Claude
-            vacancy_data = self.summarize_with_claude(content)
+            summary = self.summarize_with_claude(content)
 
-            # Load previous state
-            previous_state = self.load_previous_state()
-
-            # Check for changes
-            if self.has_changes(vacancy_data, previous_state):
-                logger.info("Changes detected - sending notification")
-                self.send_notification(vacancy_data)
-            else:
-                logger.info("No changes - skipping notification")
-
-            # Save current state
-            self.save_state(vacancy_data)
+            # Send notification
+            self.send_notification(summary)
 
             logger.info("RoomWatch check completed successfully")
-            return vacancy_data
+            return summary
 
         except Exception as e:
             logger.error(f"RoomWatch check failed: {e}")
@@ -349,12 +301,12 @@ def main():
     """Main entry point for local execution"""
     try:
         watcher = RoomWatch()
-        result = watcher.run()
+        summary = watcher.run()
 
         print("\n" + "="*50)
-        print("ROOMWATCH RESULTS")
+        print("空室情報")
         print("="*50)
-        print(json.dumps(result, indent=2))
+        print(summary)
         print("="*50 + "\n")
 
         return 0
