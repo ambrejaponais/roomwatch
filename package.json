@@ -1,0 +1,29 @@
+{
+  "name": "roomwatch",
+  "version": "1.0.0",
+  "description": "A personal automation tool that monitors room vacancy web pages, summarizes changes using Claude AI, and sends push notifications",
+  "main": "roomwatch.js",
+  "scripts": {
+    "start": "node roomwatch.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "automation",
+    "monitoring",
+    "claude",
+    "ai",
+    "notifications",
+    "web-scraping"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.0",
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "dotenv": "^16.4.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
