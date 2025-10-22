@@ -167,26 +167,18 @@ aws iam attach-role-policy --role-name roomwatch-lambda-role \
 
 3. Package and deploy your function:
 ```bash
-# Make sure AWS environment variables are set
-source .aws/env.sh  # if using the helper script
+# The deploy script automatically builds and deploys the function
+# It includes all dependencies in the deployment package
+.aws/deploy.sh
 
-# Create deployment package
-zip -r roomwatch.zip roomwatch.py requirements.txt
+# Or manually build and deploy:
+# Build deployment package (includes all dependencies)
+.aws/build.sh
 
-# Deploy to Lambda
-aws lambda create-function \
+# Deploy to Lambda (update existing function)
+aws lambda update-function-code \
   --function-name roomwatch \
-  --runtime python3.11 \
-  --role arn:aws:iam::YOUR_ACCOUNT_ID:role/roomwatch-lambda-role \
-  --handler roomwatch.lambda_handler \
-  --zip-file fileb://roomwatch.zip \
-  --timeout 30 \
-  --environment Variables="{
-    CLAUDE_API_KEY=your_key,
-    PUSHOVER_TOKEN=your_token,
-    PUSHOVER_USER=your_user,
-    TARGET_URL=your_url
-  }"
+  --zip-file fileb://roomwatch.zip
 ```
 
 4. Create EventBridge rule to run daily at 9am:
